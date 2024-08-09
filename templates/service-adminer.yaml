@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.adminer.name }}
+  labels: 
+    group: {{ .Values.adminer.group }}
+spec:
+  type: {{ .Values.adminer.service.type }}
+  selector:
+    app: {{ .Values.adminer.name }}
+  ports:
+    - port: {{ .Values.adminer.service.port }}
+      targetPort: {{ .Values.adminer.container.port }}

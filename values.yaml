@@ -1,0 +1,95 @@
+replicaCount: 1
+
+postgres:
+  name: postgres
+  group: db
+  container:
+    image: postgres:9.6-alpine
+    port: 5432
+  service:
+    type: ClusterIP
+    port: 5432
+  volume:
+    name: postgres-storage
+    kind: PersistentVolumeClaim
+    mountPath: /var/lib/postgresql/data
+    pvc:
+      name: postgres-persistent-volume-claim
+      accessMode: ReadWriteOnce
+      storage: 4Gi
+  config:
+    name: postgres-config
+    data: 
+      - key: POSTGRES_DB
+        value: kanban
+      - key: POSTGRES_USER
+        value: kanban
+      - key: POSTGRES_PASSWORD
+        value: kanban
+
+app:
+  name: kanban-ui
+  group: frontend
+  replicaCount: 1
+  container:
+    image: wkrzywiec/kanban-ui:k8s
+    port: 80
+  service:
+    type: NodePort
+    port: 80
+
+backend:
+  name: kanban-app
+  group: backend
+  container:
+    image: wkrzywiec/kanban-app:k8s
+    port: 8080
+    config:
+      - name: postgres-config
+    env: 
+      - key: DB_SERVER
+        value: postgres
+  service:
+    type: NodePort
+    port: 8080
+    targetPort: 8080
+
+
+resources:
+  memory: "256Mi"
+  cpu: "500m"
+
+
+ingress:
+  name: ingress-service
+  class: nginx
+  hosts:
+    - host: kanban.taniainspire.cyou
+      paths: 
+        - path: /
+          serviceName: kanban-ui
+          servicePort: 80
+        - path: /api/
+          serviceName: kanban-app
+          servicePort: 8080
+    - host: adminer.taniainspire.cyou
+      paths:
+        - path: /
+          serviceName: adminer
+          servicePort: 8080
+
+adminer:
+  name: adminer
+  group: db
+  replicaCount: 1
+  container:
+    image: adminer:4.7.6-standalone
+    port: 8080
+  service:
+    type: NodePort
+    port: 8080
+  env:
+    - key: ADMINER_DESIGN
+      value: pepa-linha
+    - key: ADMINER_DEFAULT_SERVER
+      value: postgres
